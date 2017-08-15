@@ -122,6 +122,7 @@ static const char input_sym_tbl[2][4][4] = { {
 	{'/', '\\','*', '=' }, {'#', '$', '%', '&' }, 
 } };
 
+// 旧
 static const char input_alph_tbl[2][2][4][5] ={ { {
 	{ '\0', 'a', 'b', 'c', '\0' }, { '\0', 'd', 'e', 'f', '\0' }, 
 	{ '\0', 'g', 'h', 'i', '\0' }, { '\0', 'j', 'k', 'l', '\0' }, 
@@ -140,6 +141,19 @@ static const char input_num_tbl[2][8] = { {
 	'3', '4', '5', '\0', '\0', '\0', '1', '2', 
 },{	
 	'6', '7', '8', '\0', '\0', '\0', '9', '0', 
+} };
+
+// 新
+static const char input_alph_num_tbl[2][8][4] ={ {
+	{ 'a', 'b', 'c', '1' }, { 'd', 'e', 'f', '2' }, 
+	{ 'g', 'h', 'i', '3' }, { 'j', 'k', 'l', '4' }, 
+	{ 'm', 'n', 'o', '5' }, { 'p', 'q', 'r', 's' }, 
+	{ 't', 'u', 'v', '.' }, { 'w', 'x', 'y', 'z' }, 
+},{
+	{ 'A', 'B', 'C', '6' }, { 'D', 'E', 'F', '7' }, 
+	{ 'G', 'H', 'I', '8' }, { 'J', 'K', 'L', '9' }, 
+	{ 'M', 'N', 'O', '0' }, { 'P', 'Q', 'R', 'S' }, 
+	{ 'T', 'U', 'V', ',' }, { 'W', 'X', 'Y', 'Z' }, 
 } };
 
 ////////////////////////////////
@@ -188,6 +202,7 @@ typedef struct {
 	int stack_p;
 	int shift_first;
 	int r_hold;
+	int r_stack;
 	int l_hold;
 	int all_first;
 } button_t;
@@ -216,6 +231,7 @@ static char input_char();
 
 static void btn_update_array(unsigned int dst[4], unsigned int src, unsigned int mask);
 static void btn_update(button_t* btn);
+static void btn_pop_r(button_t* btn);
 
 static void buf_init(buf_t* b);
 static void buf_push(buf_t* b, char c);
@@ -289,12 +305,12 @@ static char input_char(){
 	char c = '\0';
 	switch (lib->btn.all_first) {
 		case INPUT_FIRST_DPAD:
-			if (lib->btn.ab_2 >= 0) {
-				if( lib->btn.dpad_4_5 >= 0) {
-					// 左からスタート
-					int dpad_first_left0 = (lib->btn.dpad_first + 1) & 0x03;
-					c = input_alph_tbl[lib->btn.r_hold][lib->btn.ab_2][dpad_first_left0][lib->btn.dpad_4_5];
-				}
+			if ((lib->btn.dpad_8 >= 0) && (lib->btn.ab_4 >= 0)) {
+				// 左からスタート
+				//int dpad_first_left0 = (lib->btn.dpad_first + 1) & 0x03;
+				//c = input_alph_tbl[lib->btn.r_hold][lib->btn.ab_2][dpad_first_left0][lib->btn.dpad_4_5];
+				int dpad_8_left_to_0 = (lib->btn.dpad_8 + 2) & 0x07;
+				c = input_alph_num_tbl[lib->btn.r_hold][dpad_8_left_to_0][lib->btn.ab_4];
 			}
 			break;
 		
@@ -389,7 +405,7 @@ void btn_update(button_t* btn){
 			btn->ab_4_pressed = 0;
 	}
 
-	btn->ab_4 = 0;
+	btn->ab_4 = -1;
 	switch (a_p | b_p | a_r | b_r | a_h | b_h) {
 		case 0x04: // iA
 			if (btn->ab_4_pressed)
