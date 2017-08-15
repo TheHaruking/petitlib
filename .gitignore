@@ -1,0 +1,7 @@
+/build
+/.vscode
+*.elf
+*.gba
+*.sgm
+~$*.xlsx
+!gba_de_ensou.gba
