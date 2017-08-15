@@ -56,7 +56,7 @@
 #define INPUT_FIRST_AB  1
 #define INPUT_FIRST_DPAD 2
 #define INPUT_FIRST_L  3
-
+#define INPUT_FIRST_R  4
 
 ////////////////////////////////
 // ## const data
@@ -80,6 +80,19 @@ static const int num_4_tbl[16] = {
 	 0, -1, -1, -1, // ↑
 	 2, -1, -1, -1, // ↓
 	-1, -1, -1, -1,
+};
+
+// ↑↓←→
+static const int num_4_UDLR_tbl[16] = {
+	//  →  ←
+	-1,  3,  2, -1,
+	 0, -1, -1, -1, // ↑
+	 1, -1, -1, -1, // ↓
+	-1, -1, -1, -1,
+};
+
+static const int num_4_to_UDLR_tbl[4] = {
+	0, 3, 1, 2
 };
 
 // 最初 ↑、押したまま ↖ で、 0 。
@@ -115,11 +128,11 @@ static const int num_4_5_tbl[4][8] = {
 
 // 文字入力間連
 static const char input_sym_tbl[2][4][4] = { {
-	{'(', ')', '.', ',' }, {'<', '>', '\'','\"'}, 
-	{'_', '|', '+', '-' }, {'!', '?', '@', '`' }, 
+	{ '.',  ',',  '(',  ')', }, { '\'', '\"', '<',  '>', }, 
+	{ '+',  '-',  '_',  '|', }, { '@',  '`',  '!',  '?', }, 
 },{
-	{'{', '}', ':', ';' }, {'[', ']', '^', '~' }, 
-	{'/', '\\','*', '=' }, {'#', '$', '%', '&' }, 
+	{ ':',  ';',  '{',  '}', }, { '^',  '~',  '[',  ']', }, 
+	{ '*',  '=',  '/',  '\\',}, { '#',  '$',  '%',  '&', }, 
 } };
 
 // 旧
@@ -192,6 +205,7 @@ typedef struct {
 	int ab_4_pressed;
 	int ab_4_hold;
 	int dpad_4;
+	int dpad_4_hold;
 	int dpad_4_old;
 	int dpad_4_stack;
 	int dpad_8;
@@ -231,7 +245,13 @@ static char input_char();
 
 static void btn_update_array(unsigned int dst[4], unsigned int src, unsigned int mask);
 static void btn_update(button_t* btn);
-static void btn_pop_r(button_t* btn);
+static inline int btn_is_r_stack(button_t* btn);
+static inline int btn_pop_r_stack(button_t* btn);
+static inline int btn_is_ab_4_stack(button_t* btn);
+static inline int btn_pop_ab_4_stack(button_t* btn);
+static inline void btn_erase_all_stack(button_t* btn);
+static inline int btn_dpad_8_L_to_0(button_t* btn);
+static inline int btn_dpad_4_UDLR(button_t* btn);
 
 static void buf_init(buf_t* b);
 static void buf_push(buf_t* b, char c);
@@ -309,22 +329,29 @@ static char input_char(){
 				// 左からスタート
 				//int dpad_first_left0 = (lib->btn.dpad_first + 1) & 0x03;
 				//c = input_alph_tbl[lib->btn.r_hold][lib->btn.ab_2][dpad_first_left0][lib->btn.dpad_4_5];
-				int dpad_8_left_to_0 = (lib->btn.dpad_8 + 2) & 0x07;
-				c = input_alph_num_tbl[lib->btn.r_hold][dpad_8_left_to_0][lib->btn.ab_4];
+				int dpad_8_tmp = btn_dpad_8_L_to_0(&lib->btn);
+				c = input_alph_num_tbl[btn_pop_r_stack(&lib->btn)][dpad_8_tmp][lib->btn.ab_4];
+				btn_erase_all_stack(&lib->btn);
+			} else
+			if ((lib->btn.ab_4_stack >= 0) && (lib->btn.dpad_4 >= 0)) {
+				int dpad_4_tmp = btn_dpad_4_UDLR(&lib->btn);
+				c = input_sym_tbl[btn_pop_r_stack(&lib->btn)][btn_pop_ab_4_stack(&lib->btn)][dpad_4_tmp];
+				btn_erase_all_stack(&lib->btn);
 			}
 			break;
 		
-		case INPUT_FIRST_L:
-			if (lib->btn.ab_2 >= 0) {
-				switch(lib->btn.ab_2){
-					case INPUT_AB2_A:
-						c = ' ';
-						break;
-					case INPUT_AB2_B:
-						c = '\b';
-						break;
-				}
+		case INPUT_FIRST_R:
+			switch(lib->btn.dpad_4){
+				case 1:
+					c = ' ';
+					break;
+				case 3:
+					c = '\b';
+					break;
 			}
+			if(lib->btn.dpad_4 >= 0)
+				btn_erase_all_stack(&lib->btn);			
+			break;
 
 		case INPUT_FIRST_NONE:
 			switch(lib->btn.b[1] & INPUT_KEY_START) {
@@ -352,11 +379,12 @@ void btn_update(button_t* btn){
 
 	// 方向化
 	btn->dpad_8 = num_8_tbl[btn->dpad[0] >> 4]; // DPAD は2桁目 (00X0)
-	btn->dpad_4_old = btn->dpad_4;
-	btn->dpad_4 = num_4_tbl[btn->dpad[0] >> 4];
-	if ((btn->dpad_4 < 0) && (btn->dpad[0])) {
-		btn->dpad_4 = btn->dpad_4_old;
-	}	
+	btn->dpad_4 = num_4_tbl[btn->dpad[1] >> 4];
+	btn->dpad_4_old = btn->dpad_4_hold;
+	btn->dpad_4_hold = num_4_tbl[btn->dpad[0] >> 4];
+	if ((btn->dpad_4_hold < 0) && (btn->dpad[0])) {
+		btn->dpad_4_hold = btn->dpad_4_old;
+	}
 
 	// 最初に押した方向を保存。 ( 上右下左:0123。ななめ無視)
 	if (!btn->dpad[3]) { // 前フレームに十字押していない
@@ -382,7 +410,7 @@ void btn_update(button_t* btn){
 			btn->ab_2 = INPUT_AB2_B;
 			break;
 		default:
-			btn->ab_2 = INPUT_NONE;
+			btn->ab_2 = -1;
 			break;
 	}
 
@@ -444,7 +472,7 @@ void btn_update(button_t* btn){
 	}
 
 	// 最後のab4を保存しておく
-	if(btn->ab_4)
+	if(btn->ab_4 >= 0)
 		btn->ab_4_stack = btn->ab_4;
 
 	// stack
@@ -457,8 +485,12 @@ void btn_update(button_t* btn){
 	btn->r_hold = (btn->b[0] & INPUT_KEY_R) > 0;
 	btn->l_hold = (btn->b[0] & INPUT_KEY_L) > 0;
 
+	// 前置きシフト。2回でキャンセル。
+	if(btn->b[1] & INPUT_KEY_R)
+		btn->r_stack ^= 0x01;
+
 	// first key
-	unsigned int hold_keys = ((btn->dpad_8 >= 0) << 0) | ((btn->ab_4_hold >= 0) << 1) | ((btn->l_hold) << 2);
+	unsigned int hold_keys = ((btn->dpad_8 >= 0) << 0) | ((btn->ab_4_hold >= 0) << 1) | ((btn->l_hold) << 2) | ((btn->r_hold) << 3);
 	if (!btn->b[0])
 		btn->all_first = 0;
 	if (!btn->all_first) {
@@ -472,10 +504,46 @@ void btn_update(button_t* btn){
 			case 0x04: // L
 				btn->all_first = INPUT_FIRST_L;
 				break;
+			case 0x08: // R
+				btn->all_first = INPUT_FIRST_R;
+				break;
 		}
 	}
 	dprintf("all_first : %08X\n", btn->all_first);
 }
+
+static inline int btn_is_r_stack(button_t* btn){
+	return btn->r_stack;
+}
+static inline int btn_pop_r_stack(button_t* btn){
+	int ret = btn->r_stack;
+	btn->r_stack = 0;
+	return ret;
+}
+static inline int btn_is_ab_4_stack(button_t* btn){
+	return btn->ab_4_stack;
+}
+static inline int btn_pop_ab_4_stack(button_t* btn){
+	int ret = btn->ab_4_stack;
+	btn->ab_4_stack = -1;
+	return ret;
+}
+
+static inline void btn_erase_all_stack(button_t* btn){
+	btn->ab_4_stack = -1;
+	btn->r_stack = 0;
+}
+
+static inline int btn_dpad_8_L_to_0(button_t* btn){
+	return (btn->dpad_8 + 2) & 0x07;
+}
+
+static inline int btn_dpad_4_UDLR(button_t* btn){
+	return num_4_to_UDLR_tbl[btn->dpad_4];
+}
+
+/////////////////////////////////////
+
 
 static void buf_init(buf_t* b){
 	b->buf[0] = '\0';
