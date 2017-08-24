@@ -167,6 +167,8 @@ static const char input_alph_num_tbl[2][8][4] ={ {
 	{ 'T', 'U', 'V', ',' }, { 'W', 'X', 'Y', 'Z' }, 
 },};
 
+static const unsigned int zero = 0x00000000;
+
 ////////////////////////////////
 // ## 構造体
 // - プチライブラリ
@@ -742,6 +744,17 @@ void linput(char* str){
 	conadr_break();
 	buf_pop(&lib->con.in); // 文字列から改行取り除く
 	strcpy(str, lib->con.in.buf);
+}
+
+void cls(){
+	DMA_Copy(3, &zero, BG0_BASEADR_CONSOLE, 64 * 64 | DMA_SRC_FIXED);
+	lib->con.x = 0;
+	lib->con.y = 0;
+}
+
+void locate(int x, int y){
+	lib->con.x = x & 31;
+	lib->con.y = y & 31;
 }
 
 // スプライト関数

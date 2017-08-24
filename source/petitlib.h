@@ -18,6 +18,8 @@ extern void visible();
 // コンソール制御関数
 extern void linput();
 extern void print(const char* str, ...);
+extern void cls();
+extern void locate(int x, int y);
 // スプライト関数
 // バックグラウンド画面関数
 // 各種入出力
