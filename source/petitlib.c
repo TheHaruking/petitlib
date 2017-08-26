@@ -574,7 +574,7 @@ void btn_update(button_t* btn){
 		}
 	}
 
-	btn_update_debug_print();
+	// btn_update_debug_print();
 }
 
 static inline int btn_is_r_stack(button_t* btn){
@@ -762,8 +762,15 @@ void locate(int x, int y){
 // 各種入出力
 // 音関係
 // 通信
-
-
+void poke(unsigned int dst, unsigned short val){
+	*(unsigned short*)(dst) = val;
+}
+unsigned short peek(unsigned int adr){
+	return *(unsigned short*)adr;
+}
+void call(unsigned short adr){
+	//(void (*))adr();
+}
 
 /*
  * データ一覧

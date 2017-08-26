@@ -25,6 +25,10 @@ extern void locate(int x, int y);
 // 各種入出力
 // 音関係
 // 通信
+// メモリ操作
+extern void poke(unsigned int dst, unsigned short val);
+extern unsigned short peek(unsigned int adr);
+extern void call(unsigned short adr);
 
 /*
  * データ一覧
