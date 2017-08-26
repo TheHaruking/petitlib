@@ -3,16 +3,20 @@
 #include "gba.h"
 #include "petitlib.h"
 #include <mappy.h>
+
 #define OP_MAX 256
 
+// 命令のID
 enum OPECODE { 
 	OP_HAGE , OP_CLS , OP_LOCATE, OP_POKE, OP_PEEK, OP_CALL
 };
 
+// 命令の文字列
 const char op_tbl[OP_MAX][16] = {
 	"hage", "cls", "locate", "poke", "peek", "call"
 };
 
+// 比較を繰り返し、命令のIDを割り出す
 int op_search(const char* str){
 	for (int i = 0; i < OP_MAX; i++){
 		if (strcmp(str, op_tbl[i]) == 0)
@@ -21,6 +25,7 @@ int op_search(const char* str){
 	return -1;
 }
 
+// オマケ命令
 void hage() {
 	static int count;
 	count++;
@@ -30,6 +35,17 @@ void hage() {
 	print("\n");
 }
 
+// 配列データからマシン語を実行する "call"命令 のテスト用配列。
+// "call 0x0800d4b9"(適宜変化) で画面に横線がでれば成功。
+// アドレスは +1 する必要有り。(thumb命令なので)
+const unsigned short call_test[12] = {
+	0xB5FF, 0x0000, // スタックに来た道を保存
+	0x4900, 0xE001, 0xC000, 0x0600, // 0x0600C000(キャラ画像格納箇所アドレス) を レジスタ1に。
+	0x4800, 0xE001, 0x1111, 0x1111, // 0x11111111 を レジスタ0に。
+	0x6008, // レジスタ0 の値をレジスタ1のアドレスに書き込み
+	0xBDFF, // 来た道へリターン
+};
+
 int main()
 {
 	char str[256];
@@ -37,16 +53,23 @@ int main()
 	int op;
 	init();
 	print("petit lib\n");
-	print("---------\n");
+	print("call_test : %08X\n", (unsigned int)call_test);
 	print("now booting...\n");
 	
 	while(1)
 	{	
+		// 文字列をゲット
 		linput(str);
+		// 先頭をゲット
 		tok[0] = strtok(str, " ");
+		// 残りもゲット
 		for (int i = 1; i < 8; i++)
 			tok[i] = strtok(NULL, ",");
+		
+		// 先頭を見て、何の命令か判断
 		op = op_search(tok[0]);
+
+		// 命令別に処理
 		switch (op) {
 			default: {
 				print("> %s\n", str);
@@ -83,6 +106,9 @@ int main()
 				break;
 			}
 			case OP_CALL: {
+				unsigned int adr;
+				adr = strtoul(tok[1], NULL, 0);
+				call(adr);
 				break;
 			}
 		}

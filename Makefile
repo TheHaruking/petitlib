@@ -22,14 +22,14 @@ SOURCES		:=	source
 DATA		:=
 GRAPHICS	:=	gfx	
 INCLUDES	:=
-EMU			:= "D:\Program\VisualBoyAdvanceM878\VisualBoyAdvanceM.exe"
+EMU			:= "D:\Program\no\$$gba\NO\$$GBA.EXE"
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-g -Wall -O3\
+CFLAGS	:=	-g -Wall -O0\
 		-mcpu=arm7tdmi -mtune=arm7tdmi\
  		-fomit-frame-pointer\
 		-ffast-math \
@@ -111,7 +111,8 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
-	@$(EMU) $(TARGET).gba
+	@$(EMU)
+#	@$(EMU) $(TARGET).gba
 
 all	: $(BUILD)
 #---------------------------------------------------------------------------------

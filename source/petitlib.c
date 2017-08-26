@@ -62,6 +62,10 @@
 #define BG2_BASEADR_BG2		MAP_BASE_ADR(8)
 #define BG3_BASEADR_BG3		MAP_BASE_ADR(12)
 
+// 数値を関数ポインタ型にキャストするための型 (callで使用)
+typedef int (*func_t)();
+
+
 ////////////////////////////////
 // ## const data
 ////////////////////////////////
@@ -762,14 +766,15 @@ void locate(int x, int y){
 // 各種入出力
 // 音関係
 // 通信
-void poke(unsigned int dst, unsigned short val){
-	*(unsigned short*)(dst) = val;
-}
+// メモリ操作
 unsigned short peek(unsigned int adr){
 	return *(unsigned short*)adr;
 }
-void call(unsigned short adr){
-	//(void (*))adr();
+void poke(unsigned int dst, unsigned short val){
+	*(unsigned short*)(dst) = val;
+}
+void call(unsigned int adr){
+	((func_t)adr)();
 }
 
 /*
