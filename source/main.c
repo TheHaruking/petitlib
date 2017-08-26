@@ -8,12 +8,12 @@
 
 // 命令のID
 enum OPECODE { 
-	OP_HAGE , OP_CLS , OP_LOCATE, OP_POKE, OP_PEEK, OP_CALL
+	OP_HAGE , OP_CLS , OP_LOCATE, OP_PEEK, OP_POKE, OP_CALL
 };
 
 // 命令の文字列
 const char op_tbl[OP_MAX][16] = {
-	"hage", "cls", "locate", "poke", "peek", "call"
+	"hage", "cls", "locate", "peek", "poke", "call"
 };
 
 // 比較を繰り返し、命令のIDを割り出す
@@ -90,19 +90,19 @@ int main()
 				locate(x, y);
 				break;
 			}
-			case OP_POKE: {
-				int x, y;
-				x = strtoul(tok[1], NULL, 0);
-				y = strtoul(tok[2], NULL, 0);
-				poke(x, y);
-				break;
-			}
 			case OP_PEEK: {
 				unsigned int x;
 				unsigned short ret;
 				x = strtoul(tok[1], NULL, 0);
 				ret = peek(x);
 				print("> %04X\n", ret);
+				break;
+			}
+			case OP_POKE: {
+				int x, y;
+				x = strtoul(tok[1], NULL, 0);
+				y = strtoul(tok[2], NULL, 0);
+				poke(x, y);
 				break;
 			}
 			case OP_CALL: {

@@ -21,6 +21,10 @@ extern void print(const char* str, ...);
 extern void cls();
 extern void locate(int x, int y);
 // スプライト関数
+extern void spset(int id, int chr, int pal, int xflip, int yflip, int attr);
+extern void spclr(int id);
+extern void spofs(int id, int x, int y);
+extern void spchr(int id, int chr);
 // バックグラウンド画面関数
 // 各種入出力
 // 音関係
